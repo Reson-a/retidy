@@ -68,7 +68,9 @@ export const extractModules: Extractor = (ast, options) => {
         }
         const { params, body: moduleAST } = moduleFunction
 
-        const modulePath = `${isEntry ? "entry_" : ""}${id}.${ext}`
+        // const modulePath = `${isEntry ? "entry_" : ""}${id}.${ext}`
+
+        const modulePath = `${id.toString().replace(/\.[^.]+$/, '')}.${ext}`
 
         // put module function params in module body 
         // minified `function(e,t,n){`

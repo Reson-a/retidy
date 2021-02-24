@@ -1,3 +1,11 @@
+/*
+ * @Author: lishuo06
+ * @LastEditors: lishuo06
+ * @Date: 2021-02-08 18:50:46
+ * @LastEditTime: 2021-02-23 16:32:04
+ * @Description: file content
+ * @FilePath: /retidy/src/extractor/webpack/webpack-extractor.ts
+ */
 
 import { Extractor } from "../extractor-utils"
 import { extractModules } from "./extract-modules"
@@ -13,7 +21,7 @@ export const webpackExtractor: Extractor = (ast, options) => {
         }
         // Transform variables defined in ModuleFunction params to their real values
         const { entry } = extractResult
-        const transformer = getModuleFunctionParamsTransformer(entry)
+        const transformer = getModuleFunctionParamsTransformer(entry, options)
         options.extraTransformers.push(transformer)
     }
 

@@ -1,3 +1,11 @@
+/*
+ * @Author: lishuo06
+ * @LastEditors: lishuo06
+ * @Date: 2021-02-08 18:50:46
+ * @LastEditTime: 2021-02-24 12:13:53
+ * @Description: file content
+ * @FilePath: /retidy/src/transforms/transforms.ts
+ */
 
 import { AST } from "../utils/ast"
 
@@ -22,14 +30,14 @@ export const allTransformers = {
     unminifyBooleans,
     transformVoidToUndefined,
     unminifyInfinity,
-    flipComparisons,
+    // flipComparisons,
     unminifyVariableDeclarations,
     unminifyReturnStatement,
     unminifyReturnVoid,
     unminifySequenceExpressions,
-    unminifyIfStatements,
-    addCurlyBraces,
-    addParenthesesForBinaryExpressions,
+    // unminifyIfStatements,
+    // addCurlyBraces,
+    // addParenthesesForBinaryExpressions,
 }
 
 export type TransformOptions = {

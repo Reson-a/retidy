@@ -1,3 +1,11 @@
+/*
+ * @Author: lishuo06
+ * @LastEditors: lishuo06
+ * @Date: 2021-02-08 18:50:46
+ * @LastEditTime: 2021-02-10 18:07:41
+ * @Description: file content
+ * @FilePath: /retidy/src/index.ts
+ */
 import * as parser from "@babel/parser"
 import { program, file } from "@babel/types"
 import { Options, normalizeOptions } from "./options"
@@ -21,7 +29,8 @@ export const resolveModule = async (modulePath: string, moduleInfo: Module, opti
         const code = generator(fileAST, generatorOptions).code
 
         if (options.writeFiles) {
-            const outputPath = pathJoin(options.outDir, encodeURIComponent(modulePath))
+            const outputPath = pathJoin(options.outDir, modulePath)
+            // const outputPath = pathJoin(options.outDir, encodeURIComponent(modulePath))
             await ensureDir(dirname(outputPath))
             await writeFile(outputPath, code)
         }

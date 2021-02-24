@@ -24,7 +24,11 @@ import {
     Statement,
     Program,
     toStatement,
+    isAssignmentExpression,
 } from "@babel/types"
+import { isRelativeModulePath } from '../../utils/is-relative-module-path'
+import { join as pathJoin } from 'path'
+import { Options } from "../../options"
 
 const transformErr = () => new Error("something goes wrong.")
 const unknownRuntimeFnErr = () => new Error("unknown webpack runtime function")
@@ -66,14 +70,20 @@ const isWebpackRequire = (node: object): node is Identifier => {
     return isIdentifier(node, { name: "__webpack_require__" })
 }
 
-const transformWebpackRequire = (path: NodePath<CallExpression>, requireIdE: CallExpression["arguments"][0], entryId: ModuleId) => {
+const transformWebpackRequire = (path: NodePath<CallExpression>, requireIdE: CallExpression["arguments"][0], entryId: ModuleId, options: Options) => {
+    if (isAssignmentExpression(requireIdE)) {
+        requireIdE = requireIdE.right
+    }
     if (!isNumericLiteral(requireIdE) && !isStringLiteral(requireIdE)) {
-        throw transformErr()
+        return console.error(transformErr, requireIdE)
+        // throw transformErr()
     }
 
-    const requireId = requireIdE.value
+
+    const requireId = requireIdE.value.toString()
     const isEntryRequire = requireId == entryId
-    const requirePath = `./${isEntryRequire ? "entry_" : ""}${requireId}`
+    // const requirePath = `./${isEntryRequire ? "entry_" : ""}${requireId}`
+    let requirePath = isRelativeModulePath(requireId) ? pathJoin('/', (options.basePath + requireId).replace(/\.js$/, '.ts')) : requireId
 
     path.replaceWith(
         callExpression(REQUIRE_CALLEE, [stringLiteral(requirePath)])
@@ -89,7 +99,7 @@ const transformWebpackRequire = (path: NodePath<CallExpression>, requireIdE: Cal
  * replace `e` with `module`, `t` with `exports`, `n` -> `__webpack_require__` in extracted program body,  
  * and transform `__webpack_require__` to normal `require`
  */
-export const getModuleFunctionParamsTransformer = (entryId: ModuleId) => {
+export const getModuleFunctionParamsTransformer = (entryId: ModuleId, options: Options) => {
     return VisitorWrapper({
 
         Program(path) {
@@ -126,90 +136,90 @@ export const getModuleFunctionParamsTransformer = (entryId: ModuleId) => {
                 // transform `__webpack_require__` to normal `require`
                 // `__webpack_require__(0)` -> `require("./0")`
                 const { 0: requireIdE } = callArgs
-                transformWebpackRequire(path, requireIdE, entryId)
-            } else if ( // __webpack_require__.fn(exports, …
-                isMemberExpression(callee) &&
-                isWebpackRequire(callee.object) &&
-                isIdentifier(callee.property)
-            ) {
-                const method = callee.property.name
-                if (method == "d") {  // callArgs.length > 1
-                    // transform `__webpack_require__.d(exports, "…", function(){…})`
-                    // __webpack_require__.d: define getter function for harmony exports
-                    const [, exportName, exportGetter] = callArgs
-                    if (!isStringLiteral(exportName) && !isFunctionExpression(exportGetter)) {
-                        throw transformErr()
-                    }
+                transformWebpackRequire(path, requireIdE, entryId, options)
+                // } else if ( // __webpack_require__.fn(exports, …
+                //     isMemberExpression(callee) &&
+                //     isWebpackRequire(callee.object) &&
+                //     isIdentifier(callee.property)
+                // ) {
+                //     const method = callee.property.name
+                //     if (method == "d") {  // callArgs.length > 1
+                //         // transform `__webpack_require__.d(exports, "…", function(){…})`
+                //         // __webpack_require__.d: define getter function for harmony exports
+                //         const [, exportName, exportGetter] = callArgs
+                //         if (!isStringLiteral(exportName) && !isFunctionExpression(exportGetter)) {
+                //             throw transformErr()
+                //         }
 
-                    path.replaceWith(
-                        callExpression(DEFINEPROPERTY_CALLEE, [ // Object.defineProperty(exports, name, {…
-                            identifier("exports"),
-                            exportName,
-                            objectExpression([ // { enumerable: true, get: exportGetter }
-                                objectProperty(identifier("enumerable"), booleanLiteral(true)),
-                                objectProperty(identifier("get"), exportGetter as FunctionExpression),
-                            ])
-                        ])
-                    )
-                } else if (method == "r") {
-                    // transform `__webpack_require__.r(exports)
-                    // __webpack_require__.r: define __esModule on exports
-                    //                        (useless for our "re-tidied" code)
+                //         path.replaceWith(
+                //             callExpression(DEFINEPROPERTY_CALLEE, [ // Object.defineProperty(exports, name, {…
+                //                 identifier("exports"),
+                //                 exportName,
+                //                 objectExpression([ // { enumerable: true, get: exportGetter }
+                //                     objectProperty(identifier("enumerable"), booleanLiteral(true)),
+                //                     objectProperty(identifier("get"), exportGetter as FunctionExpression),
+                //                 ])
+                //             ])
+                //         )
+                //     } else if (method == "r") {
+                //         // transform `__webpack_require__.r(exports)
+                //         // __webpack_require__.r: define __esModule on exports
+                //         //                        (useless for our "re-tidied" code)
 
-                    // path.replaceWithSourceString(
-                    //      `Object.defineProperty(exports, '__esModule', { value: true });`
-                    // )
-                    path.replaceWith(
-                        callExpression(DEFINEPROPERTY_CALLEE, [
-                            identifier("exports"),
-                            stringLiteral("__esModule"),
-                            objectExpression([
-                                objectProperty(identifier("value"), booleanLiteral(true)),
-                            ])
-                        ])
-                    )
-                } else if (method == "n") {
-                    // __webpack_require__.n(…)
-                    // __webpack_require__.n: getDefaultExport function for compatibility with non-harmony modules
+                //         // path.replaceWithSourceString(
+                //         //      `Object.defineProperty(exports, '__esModule', { value: true });`
+                //         // )
+                //         path.replaceWith(
+                //             callExpression(DEFINEPROPERTY_CALLEE, [
+                //                 identifier("exports"),
+                //                 stringLiteral("__esModule"),
+                //                 objectExpression([
+                //                     objectProperty(identifier("value"), booleanLiteral(true)),
+                //                 ])
+                //             ])
+                //         )
+                //     } else if (method == "n") {
+                //         // __webpack_require__.n(…)
+                //         // __webpack_require__.n: getDefaultExport function for compatibility with non-harmony modules
 
-                    if (callArgs.length !== 1 || !isIdentifier(callArgs[0])) {
-                        throw transformErr()
-                    }
+                //         if (callArgs.length !== 1 || !isIdentifier(callArgs[0])) {
+                //             throw transformErr()
+                //         }
 
-                    path.replaceWith(
-                        callExpression(WEBPACK_REQUIRE_N_CALLEE, callArgs)
-                    )
+                //         path.replaceWith(
+                //             callExpression(WEBPACK_REQUIRE_N_CALLEE, callArgs)
+                //         )
 
-                    addGlobalStatement(path, WEBPACK_REQUIRE_N)
-                } else if (method == "bind") {
-                    // __webpack_require__.bind(null, …)
+                //         addGlobalStatement(path, WEBPACK_REQUIRE_N)
+                //     } else if (method == "bind") {
+                //         // __webpack_require__.bind(null, …)
 
-                    if (!isNullLiteral(callArgs[0])) {
-                        throw transformErr()
-                    }
+                //         if (!isNullLiteral(callArgs[0])) {
+                //             throw transformErr()
+                //         }
 
-                    const requireIdE = callArgs[1]
-                    transformWebpackRequire(path, requireIdE, entryId)
-                } else if (method == "e") {
-                    // __webpack_require__.e: load jsonp chunk
+                //         const requireIdE = callArgs[1]
+                //         transformWebpackRequire(path, requireIdE, entryId)
+                //     } else if (method == "e") {
+                //         // __webpack_require__.e: load jsonp chunk
 
-                    const [chunkId] = callArgs
-                    if (callArgs.length !== 1) {
-                        throw transformErr()
-                    }
-                    if (!isNumericLiteral(chunkId) && !isStringLiteral(chunkId)) {
-                        throw transformErr()
-                    }
+                //         const [chunkId] = callArgs
+                //         if (callArgs.length !== 1) {
+                //             throw transformErr()
+                //         }
+                //         if (!isNumericLiteral(chunkId) && !isStringLiteral(chunkId)) {
+                //             throw transformErr()
+                //         }
 
-                    // `Promise.resolve(/* webpack chunk: ${chunkId.value} */)`
-                    path.replaceWith(
-                        callExpression(WEBPACK_REQUIRE_E_CALLEE, callArgs)
-                    )
+                //         // `Promise.resolve(/* webpack chunk: ${chunkId.value} */)`
+                //         path.replaceWith(
+                //             callExpression(WEBPACK_REQUIRE_E_CALLEE, callArgs)
+                //         )
 
-                    addGlobalStatement(path, WEBPACK_REQUIRE_E)
-                } else {
-                    console.error(unknownRuntimeFnErr())
-                }
+                //         addGlobalStatement(path, WEBPACK_REQUIRE_E)
+                //     } else {
+                //         console.error(unknownRuntimeFnErr())
+                //     }
             }
         },
 

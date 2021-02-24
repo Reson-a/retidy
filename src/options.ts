@@ -1,3 +1,11 @@
+/*
+ * @Author: lishuo06
+ * @LastEditors: lishuo06
+ * @Date: 2021-02-08 18:50:46
+ * @LastEditTime: 2021-02-23 16:33:36
+ * @Description: file content
+ * @FilePath: /retidy/src/options.ts
+ */
 import { TransformOptions } from "./transforms/transforms"
 import { Transformer } from "./utils/visitor-wrapper"
 import { allExtractors } from "./extractor/extractor"
@@ -49,6 +57,8 @@ export interface Options {
      * @see https://github.com/Xmader/retidy/blob/master/src/extractor/webpack/transformer.ts#L6
      */
     replaceModuleFunctionParams?: boolean;
+
+    basePath?: string;
 }
 
 export const defaultOptions: Options = {
