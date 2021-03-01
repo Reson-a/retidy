@@ -2,7 +2,7 @@
  * @Author: lishuo06
  * @LastEditors: lishuo06
  * @Date: 2021-02-08 18:50:46
- * @LastEditTime: 2021-02-24 12:13:53
+ * @LastEditTime: 2021-03-01 17:06:35
  * @Description: file content
  * @FilePath: /retidy/src/transforms/transforms.ts
  */
@@ -21,6 +21,7 @@ import unminifyReturnStatement from "./unminify-return-statements"
 import unminifyReturnVoid from "./unminify-return-void"
 import unminifyIfStatements from "./unminify-if-statements"
 import unminifySequenceExpressions from "./unminify-sequence-expressions"
+import transformClass from './transform-class'
 
 import { Transformer } from "../utils/visitor-wrapper"
 import { combineTransformers } from "../utils/combine-transformers"
@@ -35,6 +36,7 @@ export const allTransformers = {
     unminifyReturnStatement,
     unminifyReturnVoid,
     unminifySequenceExpressions,
+    transformClass
     // unminifyIfStatements,
     // addCurlyBraces,
     // addParenthesesForBinaryExpressions,
