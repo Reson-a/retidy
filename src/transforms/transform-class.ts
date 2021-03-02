@@ -2,7 +2,7 @@
  * @Author: lishuo06
  * @LastEditors: lishuo06
  * @Date: 2021-03-01 11:32:51
- * @LastEditTime: 2021-03-01 21:47:01
+ * @LastEditTime: 2021-03-02 11:28:27
  * @Description: file content
  *
  * @FilePath: /retidy/src/transforms/transform-class.ts
@@ -36,7 +36,6 @@ import {
   spreadElement,
 } from "@babel/types";
 import { NodePath } from "@babel/traverse";
-const ignoreList = ["_XArray"];
 
 export const transformClass = VisitorWrapper({
   CallExpression(path) {
@@ -44,7 +43,24 @@ export const transformClass = VisitorWrapper({
     let { callee, arguments: args } = node;
     if (key == "init" && parentPath.isVariableDeclarator()) {
       let clsName = (parentPath.node.id as Identifier).name;
-      if (ignoreList.includes(clsName)) return;
+      // 如果后面存在直接修改原型的操作，就不进行转换 class原型writable为false
+      if (
+        parentPath.parentPath.getAllNextSiblings().some((p) => {
+          if (
+            p.isExpressionStatement() &&
+            isAssignmentExpression(p.node.expression)
+          ) {
+            let { left } = p.node.expression;
+            if (
+              isMemberExpression(left) &&
+              isIdentifier(left.object, { name: clsName }) &&
+              isIdentifier(left.property, { name: "prototype" })
+            )
+              return true;
+          }
+        })
+      )
+        return;
       let clsNode: ClassDeclaration;
       if (isFunctionExpression(callee)) {
         callee.body.body.forEach((exp) => {
