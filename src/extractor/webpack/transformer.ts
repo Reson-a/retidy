@@ -75,7 +75,8 @@ const transformWebpackRequire = (path: NodePath<CallExpression>, requireIdE: Cal
         requireIdE = requireIdE.right
     }
     if (!isNumericLiteral(requireIdE) && !isStringLiteral(requireIdE)) {
-        return console.error(transformErr, requireIdE)
+        // return console.error(transformErr, requireIdE)
+        return
         // throw transformErr()
     }
 

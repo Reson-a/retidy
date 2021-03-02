@@ -294,3 +294,4 @@ export function isTrailingCommaEnabled(options: any, context: any) {
     }
     return !!trailingComma
 }
+
